@@ -13,6 +13,8 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="ShopShop" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="application-name" content="ShopShop" />
     
     <!-- Apple Touch Icons -->
     <link rel="apple-touch-icon" href="/icon-192.png" />
@@ -24,9 +26,28 @@
     <meta name="msapplication-TileImage" content="/icon-192.png" />
     <meta name="msapplication-TileColor" content="#10b981" />
     
-    <!-- Additional PWA Meta -->
-    <meta name="mobile-web-app-capable" content="yes" />
-    <meta name="application-name" content="ShopShop" />
+    <!-- Additional PWA optimizations -->
+    <meta name="format-detection" content="telephone=no" />
+    <meta name="msapplication-tap-highlight" content="no" />
+    <meta name="apple-touch-fullscreen" content="yes" />
+    
+    <!-- Preload critical resources -->
+    <link rel="preload" href="/manifest.json" as="fetch" crossorigin="anonymous" />
+    
+    <!-- Register Service Worker immediately -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function() {
+          navigator.serviceWorker.register('/sw.js')
+            .then(function(registration) {
+              console.log('ServiceWorker registration successful');
+            })
+            .catch(function(err) {
+              console.log('ServiceWorker registration failed: ', err);
+            });
+        });
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

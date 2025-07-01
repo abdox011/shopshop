@@ -7,6 +7,7 @@
   "background_color": "#ffffff",
   "theme_color": "#10b981",
   "orientation": "portrait-primary",
+  "scope": "/",
   "icons": [
     {
       "src": "/icon-192.png",
@@ -24,6 +25,12 @@
   "categories": ["shopping", "productivity", "business"],
   "lang": "ar",
   "dir": "auto",
-  "scope": "/",
-  "prefer_related_applications": false
+  "prefer_related_applications": false,
+  "display_override": ["window-controls-overlay", "standalone"],
+  "edge_side_panel": {
+    "preferred_width": 400
+  },
+  "launch_handler": {
+    "client_mode": "navigate-existing"
+  }
 }
