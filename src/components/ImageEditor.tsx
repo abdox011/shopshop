@@ -14,7 +14,9 @@ import {
   Eye,
   Layers,
   Image as ImageIcon,
-  Sparkles
+  Sparkles,
+  Upload,
+  Trash2
 } from 'lucide-react';
 import { downloadAsImage } from '../utils/imageExport';
 import { AppSettings } from '../types';
@@ -48,6 +50,8 @@ interface BackgroundTemplate {
   gradient: string;
   preview: string;
   textColor: string;
+  isCustom?: boolean;
+  imageUrl?: string;
 }
 
 const backgroundTemplates: BackgroundTemplate[] = [
@@ -133,25 +137,43 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({
   settings
 }) => {
   const canvasRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedTemplate, setSelectedTemplate] = useState<BackgroundTemplate>(backgroundTemplates[0]);
-  const [textElements, setTextElements] = useState<TextElement[]>([
-    {
-      id: '1',
-      content: description,
-      x: 50,
-      y: 100,
-      fontSize: 16,
-      color: selectedTemplate.textColor,
-      fontFamily: 'Inter',
-      fontWeight: '400',
-      textAlign: 'left',
-      width: 500
-    }
-  ]);
+  const [customBackgrounds, setCustomBackgrounds] = useState<BackgroundTemplate[]>([]);
+  const [textElements, setTextElements] = useState<TextElement[]>([]);
   const [selectedElement, setSelectedElement] = useState<string>('1');
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [isDownloading, setIsDownloading] = useState(false);
+
+  // إعادة تعيين البيانات عند فتح المحرر أو تغيير الوصف
+  useEffect(() => {
+    if (isOpen) {
+      // إعادة تعيين القالب إلى الافتراضي
+      setSelectedTemplate(backgroundTemplates[0]);
+      
+      // إعادة تعيين عناصر النص مع الوصف الجديد
+      const newTextElement: TextElement = {
+        id: '1',
+        content: description,
+        x: 50,
+        y: 100,
+        fontSize: 16,
+        color: backgroundTemplates[0].textColor,
+        fontFamily: 'Inter',
+        fontWeight: '400',
+        textAlign: 'left',
+        width: 500
+      };
+      
+      setTextElements([newTextElement]);
+      setSelectedElement('1');
+      
+      // إعادة تعيين حالة السحب
+      setIsDragging(false);
+      setDragStart({ x: 0, y: 0 });
+    }
+  }, [isOpen, description]);
 
   const getTemplateName = (template: BackgroundTemplate) => {
     switch (language) {
@@ -166,11 +188,60 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({
 
   const handleTemplateSelect = (template: BackgroundTemplate) => {
     setSelectedTemplate(template);
-    // Update text color to match template
+    // تحديث لون النص ليتناسب مع القالب
     setTextElements(prev => prev.map(el => ({
       ...el,
       color: template.textColor
     })));
+  };
+
+  const handleCustomBackgroundUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file && file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const imageUrl = e.target?.result as string;
+        const customTemplate: BackgroundTemplate = {
+          id: `custom-${Date.now()}`,
+          name: 'Custom Background',
+          nameAr: 'خلفية مخصصة',
+          nameFr: 'Arrière-plan personnalisé',
+          gradient: '',
+          preview: '',
+          textColor: '#1f2937',
+          isCustom: true,
+          imageUrl: imageUrl
+        };
+        
+        setCustomBackgrounds(prev => [...prev, customTemplate]);
+        setSelectedTemplate(customTemplate);
+        
+        // تحديث لون النص
+        setTextElements(prev => prev.map(el => ({
+          ...el,
+          color: customTemplate.textColor
+        })));
+      };
+      reader.readAsDataURL(file);
+    }
+    
+    // إعادة تعيين قيمة input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const deleteCustomBackground = (templateId: string) => {
+    setCustomBackgrounds(prev => prev.filter(bg => bg.id !== templateId));
+    
+    // إذا كانت الخلفية المحذوفة هي المحددة، العودة للافتراضية
+    if (selectedTemplate.id === templateId) {
+      setSelectedTemplate(backgroundTemplates[0]);
+      setTextElements(prev => prev.map(el => ({
+        ...el,
+        color: backgroundTemplates[0].textColor
+      })));
+    }
   };
 
   const updateTextElement = (id: string, updates: Partial<TextElement>) => {
@@ -208,10 +279,13 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({
     setIsDragging(true);
     const rect = canvasRef.current?.getBoundingClientRect();
     if (rect) {
-      setDragStart({
-        x: e.clientX - rect.left,
-        y: e.clientY - rect.top
-      });
+      const element = textElements.find(el => el.id === elementId);
+      if (element) {
+        setDragStart({
+          x: e.clientX - rect.left - element.x,
+          y: e.clientY - rect.top - element.y
+        });
+      }
     }
   };
 
@@ -221,7 +295,10 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({
       if (rect) {
         const x = e.clientX - rect.left - dragStart.x;
         const y = e.clientY - rect.top - dragStart.y;
-        updateTextElement(selectedElement, { x: Math.max(0, x), y: Math.max(0, y) });
+        updateTextElement(selectedElement, { 
+          x: Math.max(0, Math.min(x, rect.width - 200)), 
+          y: Math.max(0, Math.min(y, rect.height - 50)) 
+        });
       }
     }
   };
@@ -244,6 +321,7 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({
   };
 
   const selectedElementData = textElements.find(el => el.id === selectedElement);
+  const allBackgrounds = [...backgroundTemplates, ...customBackgrounds];
 
   if (!isOpen) return null;
 
@@ -269,36 +347,87 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({
 
         {/* Background Templates */}
         <div className="p-6 border-b border-gray-200">
-          <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-            <ImageIcon className="w-5 h-5 text-emerald-600" />
-            {language === 'ar' ? 'خلفيات' : language === 'fr' ? 'Arrière-plans' : 'Backgrounds'}
-          </h3>
-          <div className="grid grid-cols-2 gap-3">
-            {backgroundTemplates.map((template) => (
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+              <ImageIcon className="w-5 h-5 text-emerald-600" />
+              {language === 'ar' ? 'خلفيات' : language === 'fr' ? 'Arrière-plans' : 'Backgrounds'}
+            </h3>
+            
+            {/* زر تحميل خلفية مخصصة */}
+            <div className="relative">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleCustomBackgroundUpload}
+                className="hidden"
+              />
               <button
-                key={template.id}
-                onClick={() => handleTemplateSelect(template)}
-                className={`
-                  relative h-20 rounded-xl border-2 transition-all duration-300
-                  hover:scale-105 hover:shadow-lg
-                  ${selectedTemplate.id === template.id
-                    ? 'border-emerald-500 ring-4 ring-emerald-500/20 shadow-lg'
-                    : 'border-gray-200 hover:border-emerald-300'
-                  }
-                  ${template.preview}
-                `}
+                onClick={() => fileInputRef.current?.click()}
+                className="p-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors"
+                title={language === 'ar' ? 'تحميل خلفية من الجهاز' : language === 'fr' ? 'Télécharger arrière-plan' : 'Upload Background'}
               >
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="text-xs font-bold text-center px-2" style={{ color: template.textColor }}>
-                    {getTemplateName(template)}
-                  </span>
-                </div>
-                {selectedTemplate.id === template.id && (
-                  <div className="absolute -top-2 -right-2 w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center shadow-lg">
-                    <span className="text-white text-xs font-bold">✓</span>
-                  </div>
-                )}
+                <Upload className="w-4 h-4" />
               </button>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-3 max-h-80 overflow-y-auto">
+            {allBackgrounds.map((template) => (
+              <div key={template.id} className="relative">
+                <button
+                  onClick={() => handleTemplateSelect(template)}
+                  className={`
+                    relative h-20 w-full rounded-xl border-2 transition-all duration-300
+                    hover:scale-105 hover:shadow-lg overflow-hidden
+                    ${selectedTemplate.id === template.id
+                      ? 'border-emerald-500 ring-4 ring-emerald-500/20 shadow-lg'
+                      : 'border-gray-200 hover:border-emerald-300'
+                    }
+                  `}
+                  style={{
+                    background: template.isCustom && template.imageUrl 
+                      ? `url(${template.imageUrl}) center/cover` 
+                      : template.gradient,
+                  }}
+                >
+                  {!template.isCustom && (
+                    <div className={`absolute inset-0 flex items-center justify-center ${template.preview}`}>
+                      <span className="text-xs font-bold text-center px-2" style={{ color: template.textColor }}>
+                        {getTemplateName(template)}
+                      </span>
+                    </div>
+                  )}
+                  
+                  {template.isCustom && (
+                    <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
+                      <span className="text-xs font-bold text-white text-center px-2">
+                        {getTemplateName(template)}
+                      </span>
+                    </div>
+                  )}
+                  
+                  {selectedTemplate.id === template.id && (
+                    <div className="absolute -top-2 -right-2 w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center shadow-lg">
+                      <span className="text-white text-xs font-bold">✓</span>
+                    </div>
+                  )}
+                </button>
+                
+                {/* زر حذف الخلفيات المخصصة */}
+                {template.isCustom && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      deleteCustomBackground(template.id);
+                    }}
+                    className="absolute -top-2 -left-2 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center shadow-lg hover:bg-red-600 transition-colors"
+                    title={language === 'ar' ? 'حذف الخلفية' : language === 'fr' ? 'Supprimer arrière-plan' : 'Delete Background'}
+                  >
+                    <Trash2 className="w-3 h-3 text-white" />
+                  </button>
+                )}
+              </div>
             ))}
           </div>
         </div>
@@ -319,7 +448,7 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({
           </div>
 
           {/* Text Element List */}
-          <div className="space-y-2 mb-4">
+          <div className="space-y-2 mb-4 max-h-40 overflow-y-auto">
             {textElements.map((element, index) => (
               <div
                 key={element.id}
@@ -499,10 +628,10 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({
       </div>
 
       {/* Canvas Area */}
-      <div className="flex-1 flex items-center justify-center p-8 bg-gray-100">
-        <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-4xl w-full">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-2xl font-bold text-gray-800 flex items-center gap-3">
+      <div className="flex-1 flex items-center justify-center p-4 bg-gray-100 overflow-auto">
+        <div className="bg-white rounded-2xl shadow-2xl p-4 sm:p-8 w-full max-w-5xl">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
+            <h3 className="text-xl sm:text-2xl font-bold text-gray-800 flex items-center gap-3">
               <Eye className="w-6 h-6 text-emerald-600" />
               {language === 'ar' ? 'معاينة مباشرة' : language === 'fr' ? 'Aperçu en Direct' : 'Live Preview'}
             </h3>
@@ -516,8 +645,13 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({
           <div
             id="editor-canvas"
             ref={canvasRef}
-            className="relative w-full h-96 rounded-xl border-2 border-gray-200 overflow-hidden cursor-crosshair"
-            style={{ background: selectedTemplate.gradient }}
+            className="relative w-full rounded-xl border-2 border-gray-200 overflow-hidden cursor-crosshair"
+            style={{ 
+              height: '500px',
+              background: selectedTemplate.isCustom && selectedTemplate.imageUrl 
+                ? `url(${selectedTemplate.imageUrl}) center/cover` 
+                : selectedTemplate.gradient 
+            }}
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseUp}
@@ -537,11 +671,14 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({
                   fontFamily: element.fontFamily,
                   fontWeight: element.fontWeight,
                   textAlign: element.textAlign,
-                  width: element.width,
+                  width: Math.min(element.width, 600),
                   lineHeight: 1.5,
                   padding: '8px',
                   borderRadius: selectedElement === element.id ? '8px' : '0',
-                  backgroundColor: selectedElement === element.id ? 'rgba(16, 185, 129, 0.1)' : 'transparent'
+                  backgroundColor: selectedElement === element.id ? 'rgba(16, 185, 129, 0.1)' : 'transparent',
+                  maxWidth: 'calc(100% - 20px)',
+                  wordWrap: 'break-word',
+                  overflowWrap: 'break-word'
                 }}
                 onMouseDown={(e) => handleMouseDown(e, element.id)}
               >
@@ -566,8 +703,8 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({
           </div>
 
           {/* Canvas Info */}
-          <div className="mt-4 flex items-center justify-between text-sm text-gray-600">
-            <div className="flex items-center gap-4">
+          <div className="mt-4 flex flex-col sm:flex-row sm:items-center justify-between text-sm text-gray-600 gap-2">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
               <span>
                 {language === 'ar' ? 'القالب:' : language === 'fr' ? 'Modèle:' : 'Template:'} {getTemplateName(selectedTemplate)}
               </span>
@@ -577,7 +714,7 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({
             </div>
             <div className="flex items-center gap-2">
               <Layers className="w-4 h-4" />
-              <span>600 × 400px</span>
+              <span>Canvas</span>
             </div>
           </div>
         </div>
