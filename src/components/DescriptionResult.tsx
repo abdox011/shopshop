@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Copy, Download, Save, Check } from 'lucide-react';
+import { Copy, Download, Save, Check, Edit } from 'lucide-react';
 import { downloadAsImage } from '../utils/imageExport';
+import { ImageEditor } from './ImageEditor';
 import { AppSettings } from '../types';
 
 interface DescriptionResultProps {
@@ -20,6 +21,7 @@ export const DescriptionResult: React.FC<DescriptionResultProps> = ({
 }) => {
   const [copied, setCopied] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  const [showEditor, setShowEditor] = useState(false);
 
   const handleCopy = async () => {
     try {
@@ -234,6 +236,20 @@ export const DescriptionResult: React.FC<DescriptionResultProps> = ({
         </button>
         
         <button
+          onClick={() => setShowEditor(true)}
+          className="
+            flex items-center justify-center gap-2 sm:gap-3 px-4 sm:px-6 py-3 sm:py-4 
+            rounded-xl font-bold text-sm sm:text-lg
+            bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white
+            transform transition-all duration-300 hover:scale-105 hover:shadow-lg
+            focus:ring-4 focus:ring-purple-500/25 active:scale-95
+          "
+        >
+          <Edit className="w-4 h-4 sm:w-5 sm:h-5" />
+          {language === 'ar' ? 'تخصيص وتحرير' : language === 'fr' ? 'Personnaliser et Éditer' : 'Customize & Edit'}
+        </button>
+        
+        <button
           onClick={onSave}
           className="
             flex items-center justify-center gap-2 sm:gap-3 px-4 sm:px-6 py-3 sm:py-4 
@@ -247,6 +263,15 @@ export const DescriptionResult: React.FC<DescriptionResultProps> = ({
           {translations.saveLocally}
         </button>
       </div>
+
+      {/* Image Editor Modal */}
+      <ImageEditor
+        isOpen={showEditor}
+        onClose={() => setShowEditor(false)}
+        description={description}
+        language={language}
+        settings={settings}
+      />
     </div>
   );
 };
