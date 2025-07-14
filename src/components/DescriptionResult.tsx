@@ -238,7 +238,7 @@ export const DescriptionResult: React.FC<DescriptionResultProps> = ({
         <button
           onClick={() => setShowEditor(true)}
           className="
-            flex items-center justify-center gap-2 sm:gap-3 px-4 sm:px-6 py-3 sm:py-4 
+            flex items-center justify-center gap-2 sm:gap-3 px-4 sm:px-6 py-3 sm:py-4
             rounded-xl font-bold text-sm sm:text-lg
             bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white
             transform transition-all duration-300 hover:scale-105 hover:shadow-lg

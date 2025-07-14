@@ -58,7 +58,7 @@ export const ClothingForm: React.FC<ClothingFormProps> = ({
   `;
 
   return (
-    <div className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl border-2 border-emerald-100 p-4 sm:p-8 backdrop-blur-sm">
+    <div className="bg-white rounded-xl sm:rounded-2xl lg:rounded-3xl shadow-2xl border-2 border-emerald-100 p-3 sm:p-6 lg:p-8 backdrop-blur-sm">
       <h2 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-4 sm:mb-6 flex items-center justify-center gap-3 sm:gap-4">
         <div className="p-2 sm:p-3 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-xl sm:rounded-2xl">
           <span className="text-lg sm:text-2xl text-white">👔</span>
@@ -67,7 +67,7 @@ export const ClothingForm: React.FC<ClothingFormProps> = ({
       </h2>
       
       {/* Empty Form Note - Mobile Optimized */}
-      <div className="mb-6 sm:mb-8 p-3 sm:p-4 bg-gradient-to-r from-emerald-50 to-teal-50 rounded-xl sm:rounded-2xl border-2 border-emerald-200">
+      <div className="mb-4 sm:mb-6 lg:mb-8 p-3 sm:p-4 bg-gradient-to-r from-emerald-50 to-teal-50 rounded-lg sm:rounded-xl lg:rounded-2xl border-2 border-emerald-200">
         <div className="flex items-start gap-2 sm:gap-3">
           <span className="text-lg sm:text-2xl flex-shrink-0 mt-0.5">💡</span>
           <p className="text-emerald-700 font-medium text-sm sm:text-base leading-relaxed">
@@ -76,7 +76,7 @@ export const ClothingForm: React.FC<ClothingFormProps> = ({
         </div>
       </div>
       
-      <form onSubmit={handleSubmit} className="space-y-6 sm:space-y-8">
+      <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6 lg:space-y-8">
         {/* Type Selection */}
         <IconSelector
           label={translations.type}

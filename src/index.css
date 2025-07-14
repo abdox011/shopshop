@@ -71,13 +71,19 @@
 /* Responsive font sizes */
 @media (max-width: 640px) {
   html {
-    font-size: 14px;
+    font-size: 15px;
   }
 }
 
 @media (min-width: 641px) {
   html {
     font-size: 16px;
+  }
+}
+
+@media (min-width: 1024px) {
+  html {
+    font-size: 17px;
   }
 }
 
@@ -90,4 +96,3 @@
   .safe-area-inset-bottom {
     padding-bottom: max(1rem, env(safe-area-inset-bottom));
   }
-}

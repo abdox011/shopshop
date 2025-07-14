@@ -243,7 +243,7 @@ function App() {
         </div>
 
         {/* Main Content - Mobile Optimized */}
-        <div className="space-y-6 sm:space-y-8">
+        <div className="space-y-4 sm:space-y-6 lg:space-y-8">
           {/* Form */}
           <ClothingForm
             item={item}

@@ -58,7 +58,7 @@ export const SavedDescriptions: React.FC<SavedDescriptionsProps> = ({
   if (descriptions.length === 0) return null;
 
   return (
-    <div className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl border-2 border-emerald-100 p-4 sm:p-8 backdrop-blur-sm">
+    <div className="bg-white rounded-xl sm:rounded-2xl lg:rounded-3xl shadow-2xl border-2 border-emerald-100 p-3 sm:p-6 lg:p-8 backdrop-blur-sm">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-8">
         <h2 className="text-2xl sm:text-3xl font-bold text-gray-800 flex items-center gap-3 sm:gap-4">
           <div className="p-2 sm:p-3 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-xl sm:rounded-2xl">
@@ -81,19 +81,19 @@ export const SavedDescriptions: React.FC<SavedDescriptionsProps> = ({
         </button>
       </div>
       
-      <div className="space-y-4 sm:space-y-6 max-h-[500px] sm:max-h-[600px] overflow-y-auto">
+      <div className="space-y-3 sm:space-y-4 lg:space-y-6 max-h-[400px] sm:max-h-[500px] lg:max-h-[600px] overflow-y-auto scrollbar-thin">
         {descriptions.map((desc) => (
           <div
             key={desc.id}
             className="
-              rounded-xl sm:rounded-2xl border-2 border-emerald-100
+              rounded-lg sm:rounded-xl lg:rounded-2xl border-2 border-emerald-100
               bg-gradient-to-r from-emerald-50 to-teal-50
               hover:shadow-lg hover:border-emerald-200 transition-all duration-300
               overflow-hidden
             "
           >
             {/* Header - Mobile Optimized */}
-            <div className="p-4 sm:p-6 border-b border-emerald-200/50">
+            <div className="p-3 sm:p-4 lg:p-6 border-b border-emerald-200/50">
               <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 sm:gap-4">
                 <div className="flex-1 min-w-0">
                   <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-2 sm:mb-3">

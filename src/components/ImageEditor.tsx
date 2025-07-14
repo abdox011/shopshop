@@ -16,7 +16,9 @@ import {
   Image as ImageIcon,
   Sparkles,
   Upload,
-  Trash2
+  Trash2,
+  ArrowLeft,
+  Home
 } from 'lucide-react';
 import { downloadAsImage } from '../utils/imageExport';
 import { AppSettings } from '../types';
@@ -145,6 +147,7 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [isDownloading, setIsDownloading] = useState(false);
+  const [activeTab, setActiveTab] = useState<'backgrounds' | 'text' | 'preview'>('backgrounds');
 
   // إعادة تعيين البيانات عند فتح المحرر أو تغيير الوصف
   useEffect(() => {
@@ -156,14 +159,14 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({
       const newTextElement: TextElement = {
         id: '1',
         content: description,
-        x: 50,
-        y: 100,
-        fontSize: 16,
+        x: 20,
+        y: 60,
+        fontSize: 14,
         color: backgroundTemplates[0].textColor,
         fontFamily: 'Inter',
         fontWeight: '400',
         textAlign: 'left',
-        width: 500
+        width: 280
       };
       
       setTextElements([newTextElement]);
@@ -172,6 +175,9 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({
       // إعادة تعيين حالة السحب
       setIsDragging(false);
       setDragStart({ x: 0, y: 0 });
+      
+      // بدء بتبويب المعاينة على الهاتف
+      setActiveTab(window.innerWidth < 768 ? 'preview' : 'backgrounds');
     }
   }, [isOpen, description]);
 
@@ -254,14 +260,14 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({
     const newElement: TextElement = {
       id: Date.now().toString(),
       content: language === 'ar' ? 'نص جديد' : language === 'fr' ? 'Nouveau texte' : 'New Text',
-      x: 100,
-      y: 200,
-      fontSize: 16,
+      x: 50,
+      y: 150,
+      fontSize: 14,
       color: selectedTemplate.textColor,
       fontFamily: 'Inter',
       fontWeight: '400',
       textAlign: 'left',
-      width: 300
+      width: 200
     };
     setTextElements(prev => [...prev, newElement]);
     setSelectedElement(newElement.id);
@@ -296,8 +302,8 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({
         const x = e.clientX - rect.left - dragStart.x;
         const y = e.clientY - rect.top - dragStart.y;
         updateTextElement(selectedElement, { 
-          x: Math.max(0, Math.min(x, rect.width - 200)), 
-          y: Math.max(0, Math.min(y, rect.height - 50)) 
+          x: Math.max(10, Math.min(x, rect.width - 150)), 
+          y: Math.max(10, Math.min(y, rect.height - 30)) 
         });
       }
     }
@@ -326,395 +332,435 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex">
-      {/* Sidebar */}
-      <div className="w-80 bg-white shadow-2xl overflow-y-auto">
-        {/* Header */}
-        <div className="bg-gradient-to-r from-emerald-500 to-teal-500 px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Sparkles className="w-6 h-6 text-white" />
-            <h2 className="text-xl font-bold text-white">
-              {language === 'ar' ? 'محرر الصور' : language === 'fr' ? 'Éditeur d\'Images' : 'Image Editor'}
-            </h2>
-          </div>
+    <div className="fixed inset-0 bg-gradient-to-br from-gray-900 via-slate-900 to-black z-50 overflow-hidden">
+      {/* Header - Mobile Optimized */}
+      <div className="bg-gradient-to-r from-emerald-500 to-teal-500 px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between shadow-xl">
+        <div className="flex items-center gap-2 sm:gap-3">
           <button
             onClick={onClose}
             className="p-2 hover:bg-white/20 rounded-lg transition-colors"
           >
-            <X className="w-5 h-5 text-white" />
+            <ArrowLeft className="w-5 h-5 text-white" />
           </button>
-        </div>
-
-        {/* Background Templates */}
-        <div className="p-6 border-b border-gray-200">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
-              <ImageIcon className="w-5 h-5 text-emerald-600" />
-              {language === 'ar' ? 'خلفيات' : language === 'fr' ? 'Arrière-plans' : 'Backgrounds'}
-            </h3>
-            
-            {/* زر تحميل خلفية مخصصة */}
-            <div className="relative">
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleCustomBackgroundUpload}
-                className="hidden"
-              />
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className="p-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors"
-                title={language === 'ar' ? 'تحميل خلفية من الجهاز' : language === 'fr' ? 'Télécharger arrière-plan' : 'Upload Background'}
-              >
-                <Upload className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-          
-          <div className="grid grid-cols-2 gap-3 max-h-80 overflow-y-auto">
-            {allBackgrounds.map((template) => (
-              <div key={template.id} className="relative">
-                <button
-                  onClick={() => handleTemplateSelect(template)}
-                  className={`
-                    relative h-20 w-full rounded-xl border-2 transition-all duration-300
-                    hover:scale-105 hover:shadow-lg overflow-hidden
-                    ${selectedTemplate.id === template.id
-                      ? 'border-emerald-500 ring-4 ring-emerald-500/20 shadow-lg'
-                      : 'border-gray-200 hover:border-emerald-300'
-                    }
-                  `}
-                  style={{
-                    background: template.isCustom && template.imageUrl 
-                      ? `url(${template.imageUrl}) center/cover` 
-                      : template.gradient,
-                  }}
-                >
-                  {!template.isCustom && (
-                    <div className={`absolute inset-0 flex items-center justify-center ${template.preview}`}>
-                      <span className="text-xs font-bold text-center px-2" style={{ color: template.textColor }}>
-                        {getTemplateName(template)}
-                      </span>
-                    </div>
-                  )}
-                  
-                  {template.isCustom && (
-                    <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
-                      <span className="text-xs font-bold text-white text-center px-2">
-                        {getTemplateName(template)}
-                      </span>
-                    </div>
-                  )}
-                  
-                  {selectedTemplate.id === template.id && (
-                    <div className="absolute -top-2 -right-2 w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center shadow-lg">
-                      <span className="text-white text-xs font-bold">✓</span>
-                    </div>
-                  )}
-                </button>
-                
-                {/* زر حذف الخلفيات المخصصة */}
-                {template.isCustom && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      deleteCustomBackground(template.id);
-                    }}
-                    className="absolute -top-2 -left-2 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center shadow-lg hover:bg-red-600 transition-colors"
-                    title={language === 'ar' ? 'حذف الخلفية' : language === 'fr' ? 'Supprimer arrière-plan' : 'Delete Background'}
-                  >
-                    <Trash2 className="w-3 h-3 text-white" />
-                  </button>
-                )}
-              </div>
-            ))}
+          <div className="flex items-center gap-2 sm:gap-3">
+            <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+            <h1 className="text-lg sm:text-xl font-bold text-white">
+              {language === 'ar' ? 'محرر الصور' : language === 'fr' ? 'Éditeur d\'Images' : 'Image Editor'}
+            </h1>
           </div>
         </div>
+        
+        {/* Download Button - Always Visible */}
+        <button
+          onClick={handleDownload}
+          disabled={isDownloading}
+          className="
+            flex items-center gap-2 px-3 sm:px-4 py-2 
+            rounded-lg font-bold text-sm text-white
+            bg-white/20 hover:bg-white/30
+            disabled:bg-white/10
+            transition-all duration-300
+            active:scale-95
+          "
+        >
+          {isDownloading ? (
+            <>
+              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              <span className="hidden sm:inline">
+                {language === 'ar' ? 'جاري التحميل...' : language === 'fr' ? 'Téléchargement...' : 'Downloading...'}
+              </span>
+            </>
+          ) : (
+            <>
+              <Download className="w-4 h-4" />
+              <span className="hidden sm:inline">
+                {language === 'ar' ? 'تحميل' : language === 'fr' ? 'Télécharger' : 'Download'}
+              </span>
+            </>
+          )}
+        </button>
+      </div>
 
-        {/* Text Controls */}
-        <div className="p-6 border-b border-gray-200">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
-              <Type className="w-5 h-5 text-emerald-600" />
-              {language === 'ar' ? 'النصوص' : language === 'fr' ? 'Textes' : 'Text Elements'}
-            </h3>
+      {/* Mobile Tabs */}
+      <div className="md:hidden bg-white border-b border-gray-200">
+        <div className="flex">
+          {[
+            { id: 'preview', icon: Eye, label: language === 'ar' ? 'معاينة' : language === 'fr' ? 'Aperçu' : 'Preview' },
+            { id: 'backgrounds', icon: ImageIcon, label: language === 'ar' ? 'خلفيات' : language === 'fr' ? 'Arrière-plans' : 'Backgrounds' },
+            { id: 'text', icon: Type, label: language === 'ar' ? 'نص' : language === 'fr' ? 'Texte' : 'Text' },
+          ].map((tab) => (
             <button
-              onClick={addTextElement}
-              className="p-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors"
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as any)}
+              className={`
+                flex-1 flex items-center justify-center gap-2 py-3 px-2 text-sm font-medium
+                ${activeTab === tab.id
+                  ? 'text-emerald-600 border-b-2 border-emerald-600 bg-emerald-50'
+                  : 'text-gray-500 hover:text-gray-700'
+                }
+              `}
             >
-              <Plus className="w-4 h-4" />
+              <tab.icon className="w-4 h-4" />
+              <span className="text-xs">{tab.label}</span>
             </button>
-          </div>
+          ))}
+        </div>
+      </div>
 
-          {/* Text Element List */}
-          <div className="space-y-2 mb-4 max-h-40 overflow-y-auto">
-            {textElements.map((element, index) => (
-              <div
-                key={element.id}
-                className={`
-                  p-3 rounded-lg border-2 cursor-pointer transition-all
-                  ${selectedElement === element.id
-                    ? 'border-emerald-500 bg-emerald-50'
-                    : 'border-gray-200 hover:border-emerald-300'
-                  }
-                `}
-                onClick={() => setSelectedElement(element.id)}
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-gray-700">
-                    {language === 'ar' ? `نص ${index + 1}` : language === 'fr' ? `Texte ${index + 1}` : `Text ${index + 1}`}
-                  </span>
-                  {textElements.length > 1 && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        deleteTextElement(element.id);
-                      }}
-                      className="p-1 text-red-500 hover:bg-red-100 rounded"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  )}
-                </div>
-                <p className="text-xs text-gray-500 mt-1 truncate">
-                  {element.content.substring(0, 30)}...
-                </p>
-              </div>
-            ))}
-          </div>
-
-          {/* Text Editor */}
-          {selectedElementData && (
-            <div className="space-y-4">
-              {/* Content */}
-              <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">
-                  {language === 'ar' ? 'المحتوى' : language === 'fr' ? 'Contenu' : 'Content'}
-                </label>
-                <textarea
-                  value={selectedElementData.content}
-                  onChange={(e) => updateTextElement(selectedElement, { content: e.target.value })}
-                  className="w-full p-3 rounded-lg border-2 border-gray-200 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/20 resize-none"
-                  rows={4}
-                />
-              </div>
-
-              {/* Font Size */}
-              <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">
-                  {language === 'ar' ? 'حجم الخط' : language === 'fr' ? 'Taille de police' : 'Font Size'}
-                </label>
-                <div className="flex items-center gap-2">
+      <div className="flex h-full">
+        {/* Desktop Sidebar / Mobile Content */}
+        <div className={`
+          ${activeTab === 'preview' ? 'hidden md:block' : 'block'}
+          w-full md:w-80 bg-white shadow-2xl overflow-y-auto
+          ${activeTab !== 'preview' ? 'md:block' : ''}
+        `}>
+          
+          {/* Background Templates */}
+          {(activeTab === 'backgrounds' || window.innerWidth >= 768) && (
+            <div className="p-4 sm:p-6 border-b border-gray-200">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                  <ImageIcon className="w-5 h-5 text-emerald-600" />
+                  {language === 'ar' ? 'خلفيات' : language === 'fr' ? 'Arrière-plans' : 'Backgrounds'}
+                </h3>
+                
+                {/* زر تحميل خلفية مخصصة */}
+                <div className="relative">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleCustomBackgroundUpload}
+                    className="hidden"
+                  />
                   <button
-                    onClick={() => updateTextElement(selectedElement, { fontSize: Math.max(8, selectedElementData.fontSize - 2) })}
-                    className="p-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="p-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors"
+                    title={language === 'ar' ? 'تحميل خلفية من الجهاز' : language === 'fr' ? 'Télécharger arrière-plan' : 'Upload Background'}
                   >
-                    <Minus className="w-4 h-4" />
-                  </button>
-                  <span className="px-4 py-2 bg-gray-50 rounded-lg font-bold min-w-[60px] text-center">
-                    {selectedElementData.fontSize}px
-                  </span>
-                  <button
-                    onClick={() => updateTextElement(selectedElement, { fontSize: Math.min(72, selectedElementData.fontSize + 2) })}
-                    className="p-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-                  >
-                    <Plus className="w-4 h-4" />
+                    <Upload className="w-4 h-4" />
                   </button>
                 </div>
               </div>
-
-              {/* Text Color */}
-              <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">
-                  {language === 'ar' ? 'لون النص' : language === 'fr' ? 'Couleur du texte' : 'Text Color'}
-                </label>
-                <div className="flex items-center gap-3">
-                  <input
-                    type="color"
-                    value={selectedElementData.color}
-                    onChange={(e) => updateTextElement(selectedElement, { color: e.target.value })}
-                    className="w-12 h-12 rounded-lg border-2 border-gray-200 cursor-pointer"
-                  />
-                  <input
-                    type="text"
-                    value={selectedElementData.color}
-                    onChange={(e) => updateTextElement(selectedElement, { color: e.target.value })}
-                    className="flex-1 p-3 rounded-lg border-2 border-gray-200 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/20"
-                  />
-                </div>
-              </div>
-
-              {/* Text Alignment */}
-              <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">
-                  {language === 'ar' ? 'محاذاة النص' : language === 'fr' ? 'Alignement du texte' : 'Text Alignment'}
-                </label>
-                <div className="flex gap-2">
-                  {[
-                    { value: 'left', icon: AlignLeft },
-                    { value: 'center', icon: AlignCenter },
-                    { value: 'right', icon: AlignRight }
-                  ].map(({ value, icon: Icon }) => (
+              
+              <div className="grid grid-cols-2 gap-3 max-h-80 overflow-y-auto">
+                {allBackgrounds.map((template) => (
+                  <div key={template.id} className="relative">
                     <button
-                      key={value}
-                      onClick={() => updateTextElement(selectedElement, { textAlign: value as any })}
+                      onClick={() => handleTemplateSelect(template)}
                       className={`
-                        flex-1 p-3 rounded-lg border-2 transition-all
-                        ${selectedElementData.textAlign === value
-                          ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
+                        relative h-20 w-full rounded-xl border-2 transition-all duration-300
+                        hover:scale-105 hover:shadow-lg overflow-hidden
+                        ${selectedTemplate.id === template.id
+                          ? 'border-emerald-500 ring-4 ring-emerald-500/20 shadow-lg'
                           : 'border-gray-200 hover:border-emerald-300'
                         }
                       `}
+                      style={{
+                        background: template.isCustom && template.imageUrl 
+                          ? `url(${template.imageUrl}) center/cover` 
+                          : template.gradient,
+                      }}
                     >
-                      <Icon className="w-4 h-4 mx-auto" />
+                      {!template.isCustom && (
+                        <div className={`absolute inset-0 flex items-center justify-center ${template.preview}`}>
+                          <span className="text-xs font-bold text-center px-2" style={{ color: template.textColor }}>
+                            {getTemplateName(template)}
+                          </span>
+                        </div>
+                      )}
+                      
+                      {template.isCustom && (
+                        <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
+                          <span className="text-xs font-bold text-white text-center px-2">
+                            {getTemplateName(template)}
+                          </span>
+                        </div>
+                      )}
+                      
+                      {selectedTemplate.id === template.id && (
+                        <div className="absolute -top-2 -right-2 w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center shadow-lg">
+                          <span className="text-white text-xs font-bold">✓</span>
+                        </div>
+                      )}
                     </button>
-                  ))}
-                </div>
+                    
+                    {/* زر حذف الخلفيات المخصصة */}
+                    {template.isCustom && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deleteCustomBackground(template.id);
+                        }}
+                        className="absolute -top-2 -left-2 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center shadow-lg hover:bg-red-600 transition-colors"
+                        title={language === 'ar' ? 'حذف الخلفية' : language === 'fr' ? 'Supprimer arrière-plan' : 'Delete Background'}
+                      >
+                        <Trash2 className="w-3 h-3 text-white" />
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Text Controls */}
+          {(activeTab === 'text' || window.innerWidth >= 768) && (
+            <div className="p-4 sm:p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                  <Type className="w-5 h-5 text-emerald-600" />
+                  {language === 'ar' ? 'النصوص' : language === 'fr' ? 'Textes' : 'Text Elements'}
+                </h3>
+                <button
+                  onClick={addTextElement}
+                  className="p-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors"
+                >
+                  <Plus className="w-4 h-4" />
+                </button>
               </div>
 
-              {/* Font Weight */}
-              <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">
-                  {language === 'ar' ? 'سمك الخط' : language === 'fr' ? 'Épaisseur de police' : 'Font Weight'}
-                </label>
-                <select
-                  value={selectedElementData.fontWeight}
-                  onChange={(e) => updateTextElement(selectedElement, { fontWeight: e.target.value })}
-                  className="w-full p-3 rounded-lg border-2 border-gray-200 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/20"
-                >
-                  <option value="300">Light</option>
-                  <option value="400">Normal</option>
-                  <option value="500">Medium</option>
-                  <option value="600">Semi Bold</option>
-                  <option value="700">Bold</option>
-                  <option value="800">Extra Bold</option>
-                </select>
+              {/* Text Element List */}
+              <div className="space-y-2 mb-4 max-h-40 overflow-y-auto">
+                {textElements.map((element, index) => (
+                  <div
+                    key={element.id}
+                    className={`
+                      p-3 rounded-lg border-2 cursor-pointer transition-all
+                      ${selectedElement === element.id
+                        ? 'border-emerald-500 bg-emerald-50'
+                        : 'border-gray-200 hover:border-emerald-300'
+                      }
+                    `}
+                    onClick={() => setSelectedElement(element.id)}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-gray-700">
+                        {language === 'ar' ? `نص ${index + 1}` : language === 'fr' ? `Texte ${index + 1}` : `Text ${index + 1}`}
+                      </span>
+                      {textElements.length > 1 && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            deleteTextElement(element.id);
+                          }}
+                          className="p-1 text-red-500 hover:bg-red-100 rounded"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1 truncate">
+                      {element.content.substring(0, 30)}...
+                    </p>
+                  </div>
+                ))}
               </div>
+
+              {/* Text Editor */}
+              {selectedElementData && (
+                <div className="space-y-4">
+                  {/* Content */}
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">
+                      {language === 'ar' ? 'المحتوى' : language === 'fr' ? 'Contenu' : 'Content'}
+                    </label>
+                    <textarea
+                      value={selectedElementData.content}
+                      onChange={(e) => updateTextElement(selectedElement, { content: e.target.value })}
+                      className="w-full p-3 rounded-lg border-2 border-gray-200 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/20 resize-none text-sm"
+                      rows={4}
+                    />
+                  </div>
+
+                  {/* Font Size */}
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">
+                      {language === 'ar' ? 'حجم الخط' : language === 'fr' ? 'Taille de police' : 'Font Size'}
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => updateTextElement(selectedElement, { fontSize: Math.max(8, selectedElementData.fontSize - 1) })}
+                        className="p-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                      >
+                        <Minus className="w-4 h-4" />
+                      </button>
+                      <span className="px-4 py-2 bg-gray-50 rounded-lg font-bold min-w-[60px] text-center text-sm">
+                        {selectedElementData.fontSize}px
+                      </span>
+                      <button
+                        onClick={() => updateTextElement(selectedElement, { fontSize: Math.min(32, selectedElementData.fontSize + 1) })}
+                        className="p-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                      >
+                        <Plus className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Text Color */}
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">
+                      {language === 'ar' ? 'لون النص' : language === 'fr' ? 'Couleur du texte' : 'Text Color'}
+                    </label>
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="color"
+                        value={selectedElementData.color}
+                        onChange={(e) => updateTextElement(selectedElement, { color: e.target.value })}
+                        className="w-12 h-12 rounded-lg border-2 border-gray-200 cursor-pointer"
+                      />
+                      <input
+                        type="text"
+                        value={selectedElementData.color}
+                        onChange={(e) => updateTextElement(selectedElement, { color: e.target.value })}
+                        className="flex-1 p-3 rounded-lg border-2 border-gray-200 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/20 text-sm"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Text Alignment */}
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">
+                      {language === 'ar' ? 'محاذاة النص' : language === 'fr' ? 'Alignement du texte' : 'Text Alignment'}
+                    </label>
+                    <div className="flex gap-2">
+                      {[
+                        { value: 'left', icon: AlignLeft },
+                        { value: 'center', icon: AlignCenter },
+                        { value: 'right', icon: AlignRight }
+                      ].map(({ value, icon: Icon }) => (
+                        <button
+                          key={value}
+                          onClick={() => updateTextElement(selectedElement, { textAlign: value as any })}
+                          className={`
+                            flex-1 p-3 rounded-lg border-2 transition-all
+                            ${selectedElementData.textAlign === value
+                              ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
+                              : 'border-gray-200 hover:border-emerald-300'
+                            }
+                          `}
+                        >
+                          <Icon className="w-4 h-4 mx-auto" />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Font Weight */}
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">
+                      {language === 'ar' ? 'سمك الخط' : language === 'fr' ? 'Épaisseur de police' : 'Font Weight'}
+                    </label>
+                    <select
+                      value={selectedElementData.fontWeight}
+                      onChange={(e) => updateTextElement(selectedElement, { fontWeight: e.target.value })}
+                      className="w-full p-3 rounded-lg border-2 border-gray-200 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/20 text-sm"
+                    >
+                      <option value="300">Light</option>
+                      <option value="400">Normal</option>
+                      <option value="500">Medium</option>
+                      <option value="600">Semi Bold</option>
+                      <option value="700">Bold</option>
+                      <option value="800">Extra Bold</option>
+                    </select>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
 
-        {/* Download Button */}
-        <div className="p-6">
-          <button
-            onClick={handleDownload}
-            disabled={isDownloading}
-            className="
-              w-full flex items-center justify-center gap-3 px-6 py-4 
-              rounded-xl font-bold text-lg text-white
-              bg-gradient-to-r from-emerald-500 to-teal-500 
-              hover:from-emerald-600 hover:to-teal-600
-              disabled:from-gray-400 disabled:to-gray-500
-              transform transition-all duration-300 hover:scale-105 hover:shadow-lg
-              disabled:scale-100 disabled:shadow-none
-              focus:ring-4 focus:ring-emerald-500/25
-              active:scale-95
-            "
-          >
-            {isDownloading ? (
-              <>
-                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                {language === 'ar' ? 'جاري التحميل...' : language === 'fr' ? 'Téléchargement...' : 'Downloading...'}
-              </>
-            ) : (
-              <>
-                <Download className="w-5 h-5" />
-                {language === 'ar' ? 'تحميل الصورة النهائية' : language === 'fr' ? 'Télécharger Image Finale' : 'Download Final Image'}
-              </>
-            )}
-          </button>
-        </div>
-      </div>
+        {/* Canvas Area */}
+        <div className={`
+          ${activeTab === 'preview' ? 'block' : 'hidden md:block'}
+          flex-1 flex flex-col bg-gray-100 overflow-hidden
+        `}>
+          <div className="flex-1 flex items-center justify-center p-4 overflow-auto">
+            <div className="bg-white rounded-2xl shadow-2xl p-4 w-full max-w-md mx-auto">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                  <Eye className="w-5 h-5 text-emerald-600" />
+                  {language === 'ar' ? 'معاينة مباشرة' : language === 'fr' ? 'Aperçu en Direct' : 'Live Preview'}
+                </h3>
+                <div className="flex items-center gap-2 text-xs text-gray-600">
+                  <Move className="w-3 h-3" />
+                  {language === 'ar' ? 'اسحب النصوص' : language === 'fr' ? 'Glissez les textes' : 'Drag texts'}
+                </div>
+              </div>
 
-      {/* Canvas Area */}
-      <div className="flex-1 flex items-center justify-center p-4 bg-gray-100 overflow-auto">
-        <div className="bg-white rounded-2xl shadow-2xl p-4 sm:p-8 w-full max-w-5xl">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
-            <h3 className="text-xl sm:text-2xl font-bold text-gray-800 flex items-center gap-3">
-              <Eye className="w-6 h-6 text-emerald-600" />
-              {language === 'ar' ? 'معاينة مباشرة' : language === 'fr' ? 'Aperçu en Direct' : 'Live Preview'}
-            </h3>
-            <div className="flex items-center gap-2 text-sm text-gray-600">
-              <Move className="w-4 h-4" />
-              {language === 'ar' ? 'اسحب النصوص لتحريكها' : language === 'fr' ? 'Glissez les textes pour les déplacer' : 'Drag texts to move them'}
-            </div>
-          </div>
-
-          {/* Canvas */}
-          <div
-            id="editor-canvas"
-            ref={canvasRef}
-            className="relative w-full rounded-xl border-2 border-gray-200 overflow-hidden cursor-crosshair"
-            style={{ 
-              height: '500px',
-              background: selectedTemplate.isCustom && selectedTemplate.imageUrl 
-                ? `url(${selectedTemplate.imageUrl}) center/cover` 
-                : selectedTemplate.gradient 
-            }}
-            onMouseMove={handleMouseMove}
-            onMouseUp={handleMouseUp}
-            onMouseLeave={handleMouseUp}
-          >
-            {textElements.map((element) => (
+              {/* Canvas */}
               <div
-                key={element.id}
-                className={`
-                  absolute cursor-move select-none transition-all duration-200
-                  ${selectedElement === element.id ? 'ring-2 ring-emerald-500 ring-opacity-50' : ''}
-                `}
-                style={{
-                  left: element.x,
-                  top: element.y,
-                  fontSize: element.fontSize,
-                  color: element.color,
-                  fontFamily: element.fontFamily,
-                  fontWeight: element.fontWeight,
-                  textAlign: element.textAlign,
-                  width: Math.min(element.width, 600),
-                  lineHeight: 1.5,
-                  padding: '8px',
-                  borderRadius: selectedElement === element.id ? '8px' : '0',
-                  backgroundColor: selectedElement === element.id ? 'rgba(16, 185, 129, 0.1)' : 'transparent',
-                  maxWidth: 'calc(100% - 20px)',
-                  wordWrap: 'break-word',
-                  overflowWrap: 'break-word'
+                id="editor-canvas"
+                ref={canvasRef}
+                className="relative w-full rounded-xl border-2 border-gray-200 overflow-hidden cursor-crosshair"
+                style={{ 
+                  height: '400px',
+                  background: selectedTemplate.isCustom && selectedTemplate.imageUrl 
+                    ? `url(${selectedTemplate.imageUrl}) center/cover` 
+                    : selectedTemplate.gradient 
                 }}
-                onMouseDown={(e) => handleMouseDown(e, element.id)}
+                onMouseMove={handleMouseMove}
+                onMouseUp={handleMouseUp}
+                onMouseLeave={handleMouseUp}
               >
-                <pre className="whitespace-pre-wrap font-sans">
-                  {element.content}
-                </pre>
-              </div>
-            ))}
+                {textElements.map((element) => (
+                  <div
+                    key={element.id}
+                    className={`
+                      absolute cursor-move select-none transition-all duration-200
+                      ${selectedElement === element.id ? 'ring-2 ring-emerald-500 ring-opacity-50' : ''}
+                    `}
+                    style={{
+                      left: element.x,
+                      top: element.y,
+                      fontSize: element.fontSize,
+                      color: element.color,
+                      fontFamily: element.fontFamily,
+                      fontWeight: element.fontWeight,
+                      textAlign: element.textAlign,
+                      width: Math.min(element.width, 280),
+                      lineHeight: 1.4,
+                      padding: '6px',
+                      borderRadius: selectedElement === element.id ? '6px' : '0',
+                      backgroundColor: selectedElement === element.id ? 'rgba(16, 185, 129, 0.1)' : 'transparent',
+                      maxWidth: 'calc(100% - 20px)',
+                      wordWrap: 'break-word',
+                      overflowWrap: 'break-word'
+                    }}
+                    onMouseDown={(e) => handleMouseDown(e, element.id)}
+                  >
+                    <pre className="whitespace-pre-wrap font-sans text-xs sm:text-sm">
+                      {element.content}
+                    </pre>
+                  </div>
+                ))}
 
-            {/* Grid overlay when dragging */}
-            {isDragging && (
-              <div className="absolute inset-0 pointer-events-none">
-                <div className="w-full h-full opacity-20" style={{
-                  backgroundImage: `
-                    linear-gradient(rgba(16, 185, 129, 0.3) 1px, transparent 1px),
-                    linear-gradient(90deg, rgba(16, 185, 129, 0.3) 1px, transparent 1px)
-                  `,
-                  backgroundSize: '20px 20px'
-                }} />
+                {/* Grid overlay when dragging */}
+                {isDragging && (
+                  <div className="absolute inset-0 pointer-events-none">
+                    <div className="w-full h-full opacity-20" style={{
+                      backgroundImage: `
+                        linear-gradient(rgba(16, 185, 129, 0.3) 1px, transparent 1px),
+                        linear-gradient(90deg, rgba(16, 185, 129, 0.3) 1px, transparent 1px)
+                      `,
+                      backgroundSize: '20px 20px'
+                    }} />
+                  </div>
+                )}
               </div>
-            )}
-          </div>
 
-          {/* Canvas Info */}
-          <div className="mt-4 flex flex-col sm:flex-row sm:items-center justify-between text-sm text-gray-600 gap-2">
-            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-              <span>
-                {language === 'ar' ? 'القالب:' : language === 'fr' ? 'Modèle:' : 'Template:'} {getTemplateName(selectedTemplate)}
-              </span>
-              <span>
-                {language === 'ar' ? 'العناصر:' : language === 'fr' ? 'Éléments:' : 'Elements:'} {textElements.length}
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Layers className="w-4 h-4" />
-              <span>Canvas</span>
+              {/* Canvas Info */}
+              <div className="mt-4 flex items-center justify-between text-xs text-gray-600">
+                <div className="flex items-center gap-2">
+                  <span>
+                    {language === 'ar' ? 'القالب:' : language === 'fr' ? 'Modèle:' : 'Template:'} {getTemplateName(selectedTemplate)}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Layers className="w-3 h-3" />
+                  <span>{textElements.length} {language === 'ar' ? 'عناصر' : language === 'fr' ? 'éléments' : 'elements'}</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
