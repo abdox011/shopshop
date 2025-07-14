@@ -18,7 +18,11 @@ import {
   Upload,
   Trash2,
   ArrowLeft,
-  Home
+  Home,
+  Smartphone,
+  Monitor,
+  Square,
+  Maximize
 } from 'lucide-react';
 import { downloadAsImage } from '../utils/imageExport';
 import { AppSettings } from '../types';
@@ -55,6 +59,82 @@ interface BackgroundTemplate {
   isCustom?: boolean;
   imageUrl?: string;
 }
+
+interface CanvasSize {
+  id: string;
+  name: string;
+  nameAr: string;
+  nameFr: string;
+  width: number;
+  height: number;
+  icon: React.ComponentType<any>;
+  description: string;
+  descriptionAr: string;
+  descriptionFr: string;
+}
+
+const canvasSizes: CanvasSize[] = [
+  {
+    id: 'instagram-post',
+    name: 'Instagram Post',
+    nameAr: 'منشور انستغرام',
+    nameFr: 'Post Instagram',
+    width: 400,
+    height: 400,
+    icon: Square,
+    description: '1:1 Square',
+    descriptionAr: 'مربع 1:1',
+    descriptionFr: 'Carré 1:1'
+  },
+  {
+    id: 'instagram-story',
+    name: 'Instagram Story',
+    nameAr: 'ستوري انستغرام',
+    nameFr: 'Story Instagram',
+    width: 300,
+    height: 533,
+    icon: Smartphone,
+    description: '9:16 Vertical',
+    descriptionAr: 'عمودي 9:16',
+    descriptionFr: 'Vertical 9:16'
+  },
+  {
+    id: 'facebook-post',
+    name: 'Facebook Post',
+    nameAr: 'منشور فيسبوك',
+    nameFr: 'Post Facebook',
+    width: 400,
+    height: 300,
+    icon: Monitor,
+    description: '4:3 Landscape',
+    descriptionAr: 'أفقي 4:3',
+    descriptionFr: 'Paysage 4:3'
+  },
+  {
+    id: 'tiktok-video',
+    name: 'TikTok Video',
+    nameAr: 'فيديو تيك توك',
+    nameFr: 'Vidéo TikTok',
+    width: 300,
+    height: 400,
+    icon: Smartphone,
+    description: '3:4 Vertical',
+    descriptionAr: 'عمودي 3:4',
+    descriptionFr: 'Vertical 3:4'
+  },
+  {
+    id: 'custom-large',
+    name: 'Large Format',
+    nameAr: 'حجم كبير',
+    nameFr: 'Grand Format',
+    width: 500,
+    height: 600,
+    icon: Maximize,
+    description: 'High Resolution',
+    descriptionAr: 'دقة عالية',
+    descriptionFr: 'Haute Résolution'
+  }
+];
 
 const backgroundTemplates: BackgroundTemplate[] = [
   {
@@ -141,19 +221,21 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({
   const canvasRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedTemplate, setSelectedTemplate] = useState<BackgroundTemplate>(backgroundTemplates[0]);
+  const [selectedCanvasSize, setSelectedCanvasSize] = useState<CanvasSize>(canvasSizes[0]);
   const [customBackgrounds, setCustomBackgrounds] = useState<BackgroundTemplate[]>([]);
   const [textElements, setTextElements] = useState<TextElement[]>([]);
   const [selectedElement, setSelectedElement] = useState<string>('1');
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [isDownloading, setIsDownloading] = useState(false);
-  const [activeTab, setActiveTab] = useState<'backgrounds' | 'text' | 'preview'>('backgrounds');
+  const [activeTab, setActiveTab] = useState<'sizes' | 'backgrounds' | 'text' | 'preview'>('preview');
 
   // إعادة تعيين البيانات عند فتح المحرر أو تغيير الوصف
   useEffect(() => {
     if (isOpen) {
       // إعادة تعيين القالب إلى الافتراضي
       setSelectedTemplate(backgroundTemplates[0]);
+      setSelectedCanvasSize(canvasSizes[0]);
       
       // إعادة تعيين عناصر النص مع الوصف الجديد
       const newTextElement: TextElement = {
@@ -161,12 +243,12 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({
         content: description,
         x: 20,
         y: 60,
-        fontSize: 14,
+        fontSize: 12,
         color: backgroundTemplates[0].textColor,
         fontFamily: 'Inter',
         fontWeight: '400',
         textAlign: 'left',
-        width: 280
+        width: Math.min(360, selectedCanvasSize.width - 40)
       };
       
       setTextElements([newTextElement]);
@@ -177,9 +259,19 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({
       setDragStart({ x: 0, y: 0 });
       
       // بدء بتبويب المعاينة على الهاتف
-      setActiveTab(window.innerWidth < 768 ? 'preview' : 'backgrounds');
+      setActiveTab(window.innerWidth < 768 ? 'preview' : 'sizes');
     }
   }, [isOpen, description]);
+
+  // تحديث عرض النص عند تغيير حجم Canvas
+  useEffect(() => {
+    setTextElements(prev => prev.map(el => ({
+      ...el,
+      width: Math.min(el.width, selectedCanvasSize.width - 40),
+      x: Math.min(el.x, selectedCanvasSize.width - 150),
+      y: Math.min(el.y, selectedCanvasSize.height - 30)
+    })));
+  }, [selectedCanvasSize]);
 
   const getTemplateName = (template: BackgroundTemplate) => {
     switch (language) {
@@ -192,6 +284,28 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({
     }
   };
 
+  const getCanvasSizeName = (size: CanvasSize) => {
+    switch (language) {
+      case 'ar':
+        return size.nameAr;
+      case 'fr':
+        return size.nameFr;
+      default:
+        return size.name;
+    }
+  };
+
+  const getCanvasSizeDescription = (size: CanvasSize) => {
+    switch (language) {
+      case 'ar':
+        return size.descriptionAr;
+      case 'fr':
+        return size.descriptionFr;
+      default:
+        return size.description;
+    }
+  };
+
   const handleTemplateSelect = (template: BackgroundTemplate) => {
     setSelectedTemplate(template);
     // تحديث لون النص ليتناسب مع القالب
@@ -199,6 +313,10 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({
       ...el,
       color: template.textColor
     })));
+  };
+
+  const handleCanvasSizeSelect = (size: CanvasSize) => {
+    setSelectedCanvasSize(size);
   };
 
   const handleCustomBackgroundUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -262,12 +380,12 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({
       content: language === 'ar' ? 'نص جديد' : language === 'fr' ? 'Nouveau texte' : 'New Text',
       x: 50,
       y: 150,
-      fontSize: 14,
+      fontSize: 12,
       color: selectedTemplate.textColor,
       fontFamily: 'Inter',
       fontWeight: '400',
       textAlign: 'left',
-      width: 200
+      width: Math.min(200, selectedCanvasSize.width - 100)
     };
     setTextElements(prev => [...prev, newElement]);
     setSelectedElement(newElement.id);
@@ -302,8 +420,8 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({
         const x = e.clientX - rect.left - dragStart.x;
         const y = e.clientY - rect.top - dragStart.y;
         updateTextElement(selectedElement, { 
-          x: Math.max(10, Math.min(x, rect.width - 150)), 
-          y: Math.max(10, Math.min(y, rect.height - 30)) 
+          x: Math.max(10, Math.min(x, selectedCanvasSize.width - 150)), 
+          y: Math.max(10, Math.min(y, selectedCanvasSize.height - 30)) 
         });
       }
     }
@@ -318,7 +436,8 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({
     
     setIsDownloading(true);
     try {
-      await downloadAsImage('editor-canvas', 'shopshop-custom-design', settings.imageQuality);
+      const fileName = `shopshop-${selectedCanvasSize.id}-${Date.now()}`;
+      await downloadAsImage('editor-canvas', fileName, settings.imageQuality);
     } catch (error) {
       console.error('Download failed:', error);
     } finally {
@@ -383,9 +502,10 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({
 
       {/* Mobile Tabs */}
       <div className="md:hidden bg-white border-b border-gray-200">
-        <div className="flex">
+        <div className="flex overflow-x-auto">
           {[
             { id: 'preview', icon: Eye, label: language === 'ar' ? 'معاينة' : language === 'fr' ? 'Aperçu' : 'Preview' },
+            { id: 'sizes', icon: Maximize, label: language === 'ar' ? 'الأحجام' : language === 'fr' ? 'Tailles' : 'Sizes' },
             { id: 'backgrounds', icon: ImageIcon, label: language === 'ar' ? 'خلفيات' : language === 'fr' ? 'Arrière-plans' : 'Backgrounds' },
             { id: 'text', icon: Type, label: language === 'ar' ? 'نص' : language === 'fr' ? 'Texte' : 'Text' },
           ].map((tab) => (
@@ -393,7 +513,7 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
               className={`
-                flex-1 flex items-center justify-center gap-2 py-3 px-2 text-sm font-medium
+                flex-shrink-0 flex items-center justify-center gap-2 py-3 px-4 text-sm font-medium
                 ${activeTab === tab.id
                   ? 'text-emerald-600 border-b-2 border-emerald-600 bg-emerald-50'
                   : 'text-gray-500 hover:text-gray-700'
@@ -401,7 +521,7 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({
               `}
             >
               <tab.icon className="w-4 h-4" />
-              <span className="text-xs">{tab.label}</span>
+              <span className="text-xs whitespace-nowrap">{tab.label}</span>
             </button>
           ))}
         </div>
@@ -414,6 +534,60 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({
           w-full md:w-80 bg-white shadow-2xl overflow-y-auto
           ${activeTab !== 'preview' ? 'md:block' : ''}
         `}>
+          
+          {/* Canvas Sizes */}
+          {(activeTab === 'sizes' || window.innerWidth >= 768) && (
+            <div className="p-4 sm:p-6 border-b border-gray-200">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                  <Maximize className="w-5 h-5 text-purple-600" />
+                  {language === 'ar' ? 'أحجام الصورة' : language === 'fr' ? 'Tailles d\'image' : 'Image Sizes'}
+                </h3>
+              </div>
+              
+              <div className="space-y-3 max-h-80 overflow-y-auto">
+                {canvasSizes.map((size) => (
+                  <button
+                    key={size.id}
+                    onClick={() => handleCanvasSizeSelect(size)}
+                    className={`
+                      w-full p-4 rounded-xl border-2 transition-all duration-300 text-left
+                      hover:scale-105 hover:shadow-lg
+                      ${selectedCanvasSize.id === size.id
+                        ? 'border-purple-500 bg-purple-50 ring-4 ring-purple-500/20 shadow-lg'
+                        : 'border-gray-200 hover:border-purple-300 bg-white'
+                      }
+                    `}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`
+                        p-2 rounded-lg
+                        ${selectedCanvasSize.id === size.id ? 'bg-purple-500 text-white' : 'bg-gray-100 text-gray-600'}
+                      `}>
+                        <size.icon className="w-5 h-5" />
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="font-bold text-gray-800 text-sm">
+                          {getCanvasSizeName(size)}
+                        </h4>
+                        <p className="text-xs text-gray-600 mt-1">
+                          {size.width} × {size.height}px
+                        </p>
+                        <p className="text-xs text-purple-600 font-medium">
+                          {getCanvasSizeDescription(size)}
+                        </p>
+                      </div>
+                      {selectedCanvasSize.id === size.id && (
+                        <div className="w-6 h-6 bg-purple-500 rounded-full flex items-center justify-center">
+                          <span className="text-white text-xs font-bold">✓</span>
+                        </div>
+                      )}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
           
           {/* Background Templates */}
           {(activeTab === 'backgrounds' || window.innerWidth >= 768) && (
@@ -676,88 +850,108 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({
           flex-1 flex flex-col bg-gray-100 overflow-hidden
         `}>
           <div className="flex-1 flex items-center justify-center p-4 overflow-auto">
-            <div className="bg-white rounded-2xl shadow-2xl p-4 w-full max-w-md mx-auto">
-              <div className="flex items-center justify-between mb-4">
+            <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-2xl mx-auto">
+              <div className="flex items-center justify-between mb-6">
                 <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
                   <Eye className="w-5 h-5 text-emerald-600" />
                   {language === 'ar' ? 'معاينة مباشرة' : language === 'fr' ? 'Aperçu en Direct' : 'Live Preview'}
                 </h3>
-                <div className="flex items-center gap-2 text-xs text-gray-600">
-                  <Move className="w-3 h-3" />
-                  {language === 'ar' ? 'اسحب النصوص' : language === 'fr' ? 'Glissez les textes' : 'Drag texts'}
+                <div className="flex items-center gap-4 text-sm text-gray-600">
+                  <div className="flex items-center gap-2">
+                    <selectedCanvasSize.icon className="w-4 h-4 text-purple-600" />
+                    <span className="font-medium">{getCanvasSizeName(selectedCanvasSize)}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs">
+                    <Move className="w-3 h-3" />
+                    {language === 'ar' ? 'اسحب النصوص' : language === 'fr' ? 'Glissez les textes' : 'Drag texts'}
+                  </div>
                 </div>
               </div>
 
               {/* Canvas */}
-              <div
-                id="editor-canvas"
-                ref={canvasRef}
-                className="relative w-full rounded-xl border-2 border-gray-200 overflow-hidden cursor-crosshair"
-                style={{ 
-                  height: '400px',
-                  background: selectedTemplate.isCustom && selectedTemplate.imageUrl 
-                    ? `url(${selectedTemplate.imageUrl}) center/cover` 
-                    : selectedTemplate.gradient 
-                }}
-                onMouseMove={handleMouseMove}
-                onMouseUp={handleMouseUp}
-                onMouseLeave={handleMouseUp}
-              >
-                {textElements.map((element) => (
-                  <div
-                    key={element.id}
-                    className={`
-                      absolute cursor-move select-none transition-all duration-200
-                      ${selectedElement === element.id ? 'ring-2 ring-emerald-500 ring-opacity-50' : ''}
-                    `}
-                    style={{
-                      left: element.x,
-                      top: element.y,
-                      fontSize: element.fontSize,
-                      color: element.color,
-                      fontFamily: element.fontFamily,
-                      fontWeight: element.fontWeight,
-                      textAlign: element.textAlign,
-                      width: Math.min(element.width, 280),
-                      lineHeight: 1.4,
-                      padding: '6px',
-                      borderRadius: selectedElement === element.id ? '6px' : '0',
-                      backgroundColor: selectedElement === element.id ? 'rgba(16, 185, 129, 0.1)' : 'transparent',
-                      maxWidth: 'calc(100% - 20px)',
-                      wordWrap: 'break-word',
-                      overflowWrap: 'break-word'
-                    }}
-                    onMouseDown={(e) => handleMouseDown(e, element.id)}
-                  >
-                    <pre className="whitespace-pre-wrap font-sans text-xs sm:text-sm">
-                      {element.content}
-                    </pre>
-                  </div>
-                ))}
+              <div className="flex justify-center">
+                <div
+                  id="editor-canvas"
+                  ref={canvasRef}
+                  className="relative border-2 border-gray-200 overflow-hidden cursor-crosshair shadow-lg"
+                  style={{ 
+                    width: selectedCanvasSize.width,
+                    height: selectedCanvasSize.height,
+                    background: selectedTemplate.isCustom && selectedTemplate.imageUrl 
+                      ? `url(${selectedTemplate.imageUrl}) center/cover` 
+                      : selectedTemplate.gradient,
+                    maxWidth: '100%',
+                    borderRadius: '12px'
+                  }}
+                  onMouseMove={handleMouseMove}
+                  onMouseUp={handleMouseUp}
+                  onMouseLeave={handleMouseUp}
+                >
+                  {textElements.map((element) => (
+                    <div
+                      key={element.id}
+                      className={`
+                        absolute cursor-move select-none transition-all duration-200
+                        ${selectedElement === element.id ? 'ring-2 ring-emerald-500 ring-opacity-50' : ''}
+                      `}
+                      style={{
+                        left: element.x,
+                        top: element.y,
+                        fontSize: element.fontSize,
+                        color: element.color,
+                        fontFamily: element.fontFamily,
+                        fontWeight: element.fontWeight,
+                        textAlign: element.textAlign,
+                        width: Math.min(element.width, selectedCanvasSize.width - element.x - 20),
+                        lineHeight: 1.4,
+                        padding: '6px',
+                        borderRadius: selectedElement === element.id ? '6px' : '0',
+                        backgroundColor: selectedElement === element.id ? 'rgba(16, 185, 129, 0.1)' : 'transparent',
+                        maxWidth: `${selectedCanvasSize.width - 40}px`,
+                        wordWrap: 'break-word',
+                        overflowWrap: 'break-word'
+                      }}
+                      onMouseDown={(e) => handleMouseDown(e, element.id)}
+                    >
+                      <pre className="whitespace-pre-wrap font-sans" style={{ fontSize: element.fontSize }}>
+                        {element.content}
+                      </pre>
+                    </div>
+                  ))}
 
-                {/* Grid overlay when dragging */}
-                {isDragging && (
-                  <div className="absolute inset-0 pointer-events-none">
-                    <div className="w-full h-full opacity-20" style={{
-                      backgroundImage: `
-                        linear-gradient(rgba(16, 185, 129, 0.3) 1px, transparent 1px),
-                        linear-gradient(90deg, rgba(16, 185, 129, 0.3) 1px, transparent 1px)
-                      `,
-                      backgroundSize: '20px 20px'
-                    }} />
-                  </div>
-                )}
+                  {/* Grid overlay when dragging */}
+                  {isDragging && (
+                    <div className="absolute inset-0 pointer-events-none">
+                      <div className="w-full h-full opacity-20" style={{
+                        backgroundImage: `
+                          linear-gradient(rgba(16, 185, 129, 0.3) 1px, transparent 1px),
+                          linear-gradient(90deg, rgba(16, 185, 129, 0.3) 1px, transparent 1px)
+                        `,
+                        backgroundSize: '20px 20px'
+                      }} />
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Canvas Info */}
-              <div className="mt-4 flex items-center justify-between text-xs text-gray-600">
-                <div className="flex items-center gap-2">
-                  <span>
-                    {language === 'ar' ? 'القالب:' : language === 'fr' ? 'Modèle:' : 'Template:'} {getTemplateName(selectedTemplate)}
-                  </span>
+              <div className="mt-6 flex items-center justify-between text-sm text-gray-600">
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium">
+                      {language === 'ar' ? 'القالب:' : language === 'fr' ? 'Modèle:' : 'Template:'} 
+                    </span>
+                    <span>{getTemplateName(selectedTemplate)}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium">
+                      {language === 'ar' ? 'الحجم:' : language === 'fr' ? 'Taille:' : 'Size:'} 
+                    </span>
+                    <span>{selectedCanvasSize.width} × {selectedCanvasSize.height}</span>
+                  </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Layers className="w-3 h-3" />
+                  <Layers className="w-4 h-4" />
                   <span>{textElements.length} {language === 'ar' ? 'عناصر' : language === 'fr' ? 'éléments' : 'elements'}</span>
                 </div>
               </div>
